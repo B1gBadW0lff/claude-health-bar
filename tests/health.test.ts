@@ -6,7 +6,6 @@ test('levels move with the signs', async ($, on) => {
   on('session.start', (_, e) => ({ cwd: e.cwd }))
   on('prompt.submit', (_, e) => ({ text: e.text }))
   on('turn.complete', (_, e) => ({ text: e.answer }))
-  on('ui.toast', () => ({ value: undefined }))
   on('clock.now', () => ({ value: 1761300000000 }))
   on('store.get', () => ({ value: undefined }))
   on('store.set', () => ({ value: undefined }))
@@ -16,14 +15,20 @@ test('levels move with the signs', async ($, on) => {
     await $.prompt.submit({ text: prompt })
     return $.turn.complete({ answer, durationMs: 1, isAborted: false, turnId: 't', reason: 'answer' } as never)
   }
+  const level = async () => {
+    const ui = await $.ui.mount({ plugin: 'health-bar', component: 'AbovePrompt', surface: 'desktop', props: {} } as never)
+    const text = (await ui.find({ type: 'Text' }))?.text ?? ''
+    await ui.unmount()
+    return ['Fresh', 'Warm', 'Drifting', 'Tired', 'Fussy', 'Done'].findIndex(n => text.includes(n))
+  }
   const a = await turn('hi', 'bug bug')
-  expect((a as { text?: string }).text).toMatch(/Fresh/)
-  const b = await turn('ok', 'fine')
-  expect((b as { text?: string }).text).toBe('fine')
-  const c = await turn('huh?', 'sorry')
-  const d = await turn('what?', 'sorry again')
-  expect((d as { text?: string }).text).toMatch(/Drifting/)
+  expect((a as { text?: string }).text).toBe('bug bug')
+  expect(await level()).toBe(0)
+  await turn('ok', 'fine')
+  await turn('huh?', 'sorry')
+  await turn('what?', 'sorry again')
+  expect(await level()).toBe(2)
   const e = await turn('go', 'done — there')
-  expect((e as { text?: string }).text).toMatch(/Tired/)
-  void c
+  expect((e as { text?: string }).text).toBe('done — there')
+  expect(await level()).toBe(3)
 })

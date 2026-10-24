@@ -3,7 +3,7 @@ import type { Register } from 'claude-code'
 
 import type { Health, Sign, SignKind } from '../types'
 
-// Krish's 6 levels (decided 24 Oct 2026). Shown only when the level changes.
+// Krish's 6 levels (decided 24 Oct 2026). Shown in a band above the prompt; it changes only when the level changes.
 const LEVELS = [
   { dot: '🔵', name: 'Fresh', line: 'Fresh and ready, Krish. Let’s go.' },
   { dot: '🟢', name: 'Warm', line: 'Warmed up and deep in it. All good.' },
@@ -138,11 +138,23 @@ export const register: Register = on => {
     if (!changed) return done
     const h: Health = changed
     const bar = barText(h, h.shownLevel)
-    $.ui.toast(bar)
     try {
       const log = ((await $.store.get('log')) as string[] | undefined) ?? []
       await $.store.set('log', [...log, `${new Date(at).toISOString()} ${bar}`].slice(-200))
     } catch {}
-    return { ...done, text: bar }
+    return done
+  })
+
+  // The bar: a thin band above the prompt that stays on screen.
+  // It only changes when the level changes. Code only, no AI tokens.
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    const now = await read($, health)
+    if (e.props.hasSurvey || now.shownLevel < 0) return next(e)
+    const { Box, Text } = $.ui.resolve(e)
+    return (
+      <Box>
+        <Text>{barText(now, now.shownLevel)}</Text>
+      </Box>
+    )
   })
 }
