@@ -1,1 +1,1 @@
-{ "name": "health-bar", "version": "0.2.0", "description": "Chat health bar: shows a coloured level when Claude starts getting tired, so you know when to start a fresh chat.", "author": { "name": "B1gBadW0lff" }, "license": "MIT", "types": "./types/index.d.ts" }
+{ "name": "health-bar", "version": "0.3.0", "description": "Chat health bar: shows a coloured level when Claude starts getting tired, so you know when to start a fresh chat.", "author": { "name": "B1gBadW0lff" }, "license": "MIT", "types": "./types/index.d.ts" }

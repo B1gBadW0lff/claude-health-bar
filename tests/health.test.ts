@@ -22,13 +22,16 @@ test('levels move with the signs', async ($, on) => {
     return ['Fresh', 'Warm', 'Drifting', 'Tired', 'Fussy', 'Done'].findIndex(n => text.includes(n))
   }
   const a = await turn('hi', 'bug bug')
-  expect((a as { text?: string }).text).toBe('bug bug')
+  // Level changed (first reply): the bar line goes under the reply.
+  expect((a as { text?: string }).text).toContain('Fresh')
   expect(await level()).toBe(0)
-  await turn('ok', 'fine')
+  const b = await turn('ok', 'fine')
+  // No level change: the answer passes through untouched, no extra line.
+  expect((b as { text?: string }).text).toBe('fine')
   await turn('huh?', 'sorry')
   await turn('what?', 'sorry again')
   expect(await level()).toBe(2)
   const e = await turn('go', 'done — there')
-  expect((e as { text?: string }).text).toBe('done — there')
+  expect((e as { text?: string }).text).toContain('Tired')
   expect(await level()).toBe(3)
 })

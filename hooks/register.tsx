@@ -3,7 +3,7 @@ import type { Register } from 'claude-code'
 
 import type { Health, Sign, SignKind } from '../types'
 
-// Krish's 6 levels (decided 24 Oct 2026). Shown in a band above the prompt; it changes only when the level changes.
+// Krish's 6 levels (decided 24 Oct 2026). Shown in a band above the prompt (terminal) and as a line under the reply when the level changes (all apps).
 const LEVELS = [
   { dot: '🔵', name: 'Fresh', line: 'Fresh and ready, Krish. Let’s go.' },
   { dot: '🟢', name: 'Warm', line: 'Warmed up and deep in it. All good.' },
@@ -142,7 +142,10 @@ export const register: Register = on => {
       const log = ((await $.store.get('log')) as string[] | undefined) ?? []
       await $.store.set('log', [...log, `${new Date(at).toISOString()} ${bar}`].slice(-200))
     } catch {}
-    return done
+    // Backup for apps with no band spot (the main Claude app): show the bar
+    // as a line under the reply, only when the level changes. Never replaces the answer.
+    if (e.reason !== 'answer') return done
+    return { ...done, text: bar }
   })
 
   // The bar: a thin band above the prompt that stays on screen.
