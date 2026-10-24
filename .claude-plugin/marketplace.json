@@ -1,0 +1,5 @@
+{
+  "name": "claude-health-bar",
+  "owner": { "name": "B1gBadW0lff" },
+  "plugins": [{ "name": "health-bar", "source": "./" }]
+}
