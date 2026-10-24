@@ -2,7 +2,7 @@
 
 A small Claude mod that tells you when a chat is getting too long and Claude is getting less sharp.
 
-It shows a thin coloured bar above the prompt box (terminal), and a one-line bar under the reply whenever the level changes (every app, including the main Claude app). It only changes when the level changes:
+It shows a thin coloured bar above the prompt box (terminal). In the main Claude app, which draws no mod screens, Claude adds the bar as the last line of its reply, only when the level changes (a few tokens, then nothing). It only changes when the level changes:
 
 🔵 Fresh · 🟢 Warm · 🟡 Drifting · 🟠 Tired · 🔴 Fussy · ⚫ Done
 

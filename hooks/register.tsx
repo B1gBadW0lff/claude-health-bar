@@ -3,7 +3,8 @@ import type { Register } from 'claude-code'
 
 import type { Health, Sign, SignKind } from '../types'
 
-// Krish's 6 levels (decided 24 Oct 2026). Shown in a band above the prompt (terminal) and as a line under the reply when the level changes (all apps).
+// Krish's 6 levels (decided 24 Oct 2026). Shown in a band above the prompt (terminal) and,
+// when the level changes, as the last line of Claude's reply (the main Claude app).
 const LEVELS = [
   { dot: '🔵', name: 'Fresh', line: 'Fresh and ready, Krish. Let’s go.' },
   { dot: '🟢', name: 'Warm', line: 'Warmed up and deep in it. All good.' },
@@ -105,47 +106,46 @@ export const register: Register = on => {
     const text = e.text.trim()
     const isConfused = text.length <= 80 && CONFUSED.test(text)
     const at = await $.clock.now()
+    let show: Health | null = null
     await update($, health, h => {
       const prompts = h.prompts + 1
       const confusedStreak = isConfused ? h.confusedStreak + 1 : 0
       const signs: Sign[] = [...h.signs]
       if (confusedStreak === 2) signs.push({ kind: 'confused_twice', note: text.slice(0, 40), at })
       if (LONG_CHAT_PROMPTS.includes(prompts)) signs.push({ kind: 'long_chat', note: `${prompts} messages`, at })
-      return { ...h, prompts, confusedStreak, signs }
+      const after: Health = { ...h, prompts, confusedStreak, signs }
+      const level = levelOf(after)
+      if (level === h.shownLevel) return after
+      show = { ...after, shownLevel: level }
+      return show
     })
-    return next(e)
+    if (!show) return next(e)
+    // The main Claude app draws no mod UI, so the bar rides in the reply.
+    // Only when the level changes: a hidden note for Claude, a few tokens, then nothing.
+    const h: Health = show
+    const bar = barText(h, h.shownLevel)
+    try {
+      const log = ((await $.store.get('log')) as string[] | undefined) ?? []
+      await $.store.set('log', [...log, `${new Date(at).toISOString()} ${bar}`].slice(-200))
+    } catch {}
+    const note = `Health bar changed. End your reply with this exact line, on its own, after a blank line:\n${bar}`
+    return next({ ...e, context: [...(e.context ?? []), note] })
   })
 
+  // Counts em dashes and long replies. The level shows at the next message.
   on('turn.complete', async ($, e, next) => {
     const done = await next(e)
     if (e.agentId || e.isAborted) return done
     const answer = e.answer ?? ''
     const at = await $.clock.now()
     const words = answer.split(/\s+/).filter(Boolean).length
-    let changed: Health | null = null
     await update($, health, h => {
       const signs: Sign[] = [...h.signs]
       if (answer.includes('—')) signs.push({ kind: 'em_dash', note: '', at })
       if (words > LONG_REPLY_WORDS) signs.push({ kind: 'long_reply', note: `${words} words`, at })
-      const after: Health = { ...h, signs }
-      const level = levelOf(after)
-      if (level !== h.shownLevel) {
-        changed = { ...after, shownLevel: level }
-        return changed
-      }
-      return after
+      return { ...h, signs }
     })
-    if (!changed) return done
-    const h: Health = changed
-    const bar = barText(h, h.shownLevel)
-    try {
-      const log = ((await $.store.get('log')) as string[] | undefined) ?? []
-      await $.store.set('log', [...log, `${new Date(at).toISOString()} ${bar}`].slice(-200))
-    } catch {}
-    // Backup for apps with no band spot (the main Claude app): show the bar
-    // as a line under the reply, only when the level changes. Never replaces the answer.
-    if (e.reason !== 'answer') return done
-    return { ...done, text: bar }
+    return done
   })
 
   // The bar: a thin band above the prompt that stays on screen.
